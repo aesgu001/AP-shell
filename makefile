@@ -25,7 +25,7 @@ $(TARGET): $(BIN) $(OBJ)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ)
 
 $(BIN)/ap-shell.o: $(INCLUDE)/ap-shell.h $(SRC)/ap-shell.c
-	$(CC) $(CFLAGS) -D_XOPEN_SOURCE=500 -o $(BIN)/ap-shell.o -c $(SRC)/ap-shell.c
+	$(CC) $(CFLAGS) -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L -o $(BIN)/ap-shell.o -c $(SRC)/ap-shell.c
 
 $(BIN):
 	mkdir -p $(BIN)

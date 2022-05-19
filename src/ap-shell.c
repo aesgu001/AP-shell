@@ -1,18 +1,15 @@
 #include "../include/ap-shell.h"
 
-/*
-*   Writes the shell's command prompt to standard output.
-*   
-*   @return None.
-*/
 void displayPrompt()
 {
     /*  Current username.    */
     char *userName = NULL;
     /*  Current host (machine) name.    */
     char hostName[HOST_NAME_MAX];
-    /*  Path to current directory.  */
-    char *pwdDir = NULL;
+    /*  Current working directory.  */
+    char *cwd = NULL;
+    /*  Current home directory.     */
+    char *homeDir = NULL;
 
     /*  Get username    */
     userName = getpwuid(geteuid())->pw_name;
@@ -32,29 +29,35 @@ void displayPrompt()
     }
 
     /*  Get "PWD" env value     */
-    pwdDir = getenv(AP_PWD_ENV);
-    if (!pwdDir)
+    cwd = getenv(AP_ENV_PWD);
+    if (!cwd)
     {
         perror("getenv");
     }
-    else
+    /*  Get "HOME" env value    */
+    homeDir = getenv(AP_ENV_HOME);
+    if (!homeDir)
     {
-        /*  Print current path  */
-        printf("%s", pwdDir);
+        perror("getenv");
+    }
+    else if (cwd)
+    {
+        if (strstr(cwd, homeDir) == cwd)
+        {
+            /*  Print cwd path truncated   */
+            printf("~%s", cwd + strlen(homeDir));
+        }
+        else
+        {
+            /*  Print cwd path raw  */
+            printf("%s", cwd);
+        }
     }
 
     /*  Print shell symbol  */
     printf("$ ");
 }
 
-/*
-*   Generates an argument list from the command line input.
-*
-*   @param  line    command line input.
-*   @param  argv    argument list.
-*
-*   @return None.
-*/
 void parseLine(char *line, char **argv)
 {
     /*  Parse command line until null character found   */
@@ -84,15 +87,87 @@ void parseLine(char *line, char **argv)
     *argv = NULL;
 }
 
-/*
-*   Clones a child process to execute the command line argument, and stores that process's
-*   exit status.
-*
-*   @param  argv        command line argument.
-*   @param  exitStatus  child process's exit status.
-*
-*   @return None.
-*/
+int executecd(const char *path)
+{
+    /*  Current working directory.  */
+    const char *cwd = NULL;
+    /*  Path to destination directory.  */
+    const char *destDir = NULL;
+    /*  New working directory.  */
+    char *nwd = NULL;
+
+    /*  Get current env value   */
+    cwd = getenv(AP_ENV_PWD);
+    if (!cwd)
+    {
+        perror("getenv");
+        return EXIT_FAILURE;
+    }
+
+    if (!path || strcmp(path, "~") == 0)
+    {
+        /*  Get path to HOME directory  */
+        destDir = getenv(AP_ENV_HOME);
+        if (!destDir)
+        {
+            perror("getenv");
+            return EXIT_FAILURE;
+        }
+    }
+    else if (strcmp(path, "-") == 0)
+    {
+        /*  Get path to OLDPWD directory    */
+        destDir = getenv(AP_ENV_OLDPWD);
+        if (!destDir)
+        {
+            perror("getenv");
+            return EXIT_FAILURE;
+        }
+        else
+        {
+            /*  Print it    */
+            printf("%s\n", destDir);
+        }
+    }
+    else
+    {
+        /*  Get path to destination directory   */
+        destDir = path;
+    }
+
+    /*  Change current working directory    */
+    if (chdir(destDir) < 0)
+    {
+        perror("chdir");
+        return EXIT_FAILURE;
+    }
+    /*  Set OLDPWD to previous env  */
+    else if (setenv(AP_ENV_OLDPWD, cwd, 1) < 0)
+    {
+        perror("setenv");
+        return EXIT_FAILURE;
+    }
+
+    /*  Get new working directory   */
+    nwd = getcwd(nwd, PATH_MAX);
+    if (!nwd)
+    {
+        perror("getcwd");
+        return EXIT_FAILURE;
+    }
+    /*  Set PWD to new env  */
+    else if (setenv(AP_ENV_PWD, nwd, 1) < 0)
+    {
+        perror("setenv");
+        free(nwd);
+        return EXIT_FAILURE;
+    }
+    /*  Free allocated memory from nwd  */
+    free(nwd);
+
+    return EXIT_SUCCESS;
+}
+
 void executeCommand(char *const argv[], int *exitStatus)
 {
     /*  Caller process ID.  */
@@ -138,16 +213,22 @@ int main()
         /*  Read command line   */
         fgets(line, AP_ARG_MAX, stdin);
         /*  Parse command line  */
-        parseLine(line, argv);        
+        parseLine(line, argv);
         /*  Continue if argument NULL  */
         if (!(*argv))
         {
             continue;
         }
         /*  Break from loop if exit called  */
-        else if (strcmp(*argv, "exit") == 0)
+        else if (strcmp(*argv, AP_CMD_EXIT) == 0)
         {
             break;
+        }
+        /*  Handle in program if cd called  */
+        else if (strcmp(*argv, AP_CMD_CD) == 0)
+        {
+            exitStatus = executecd(*(argv + 1));
+            continue;
         }
         /*  Execute command line argument   */
         executeCommand(argv, &exitStatus);
