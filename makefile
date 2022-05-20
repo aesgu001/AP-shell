@@ -14,7 +14,7 @@ SRC = src
 BIN = bin
 
 # Object files
-OBJ = $(BIN)/main.o $(BIN)/prompt.o
+OBJ = $(BIN)/main.o $(BIN)/prompt.o $(BIN)/parse.o
 
 # Target executable
 TARGET = $(BIN)/AP-shell
@@ -24,11 +24,14 @@ all: $(TARGET)
 $(TARGET): $(BIN) $(OBJ)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ)
 
-$(BIN)/main.o: $(SRC)/main.c $(BIN)/prompt.o $(SRC)/main.c
+$(BIN)/main.o: $(BIN)/prompt.o $(BIN)/parse.o $(SRC)/main.c
 	$(CC) $(CFLAGS) -o $(BIN)/main.o -c $(SRC)/main.c
 
 $(BIN)/prompt.o: $(INCLUDE)/prompt.h $(SRC)/prompt.c
 	$(CC) $(CFLAGS) -D_XOPEN_SOURCE=500 -o $(BIN)/prompt.o -c $(SRC)/prompt.c
+
+$(BIN)/parse.o: $(INCLUDE)/parse.h $(SRC)/parse.c
+	$(CC) $(CFLAGS) -D_DEFAULT_SOURCE -o $(BIN)/parse.o -c $(SRC)/parse.c
 
 $(BIN):
 	mkdir -p $(BIN)

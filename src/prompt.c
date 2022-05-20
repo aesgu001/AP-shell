@@ -20,6 +20,7 @@ int getCommandPrompt(char *buf, size_t size)
     /*  Check if buffer is NULL     */
     if (!buf)
     {
+        fprintf(stderr, "buffer is NULL\n");
         return 1;
     }
 
@@ -31,10 +32,7 @@ int getCommandPrompt(char *buf, size_t size)
         return 1;
     }
     loginName = user->pw_name;
-    if ((length += strlen(loginName) + 1) >= size)
-    {
-        return 1;
-    }
+    length += strlen(loginName) + 1;
 
     /*  Get host name + ':' */
     if (gethostname(hostName, _HOST_NAME_MAX) < 0)
@@ -42,10 +40,7 @@ int getCommandPrompt(char *buf, size_t size)
         perror("gethostname");
         return 1;
     }
-    else if ((length += strlen(hostName) + 1) >= size)
-    {
-        return 1;
-    }
+    length += strlen(hostName) + 1;
 
     /*  Get cwd path    */
     cwd = getenv(_PWD_ENV);
@@ -56,6 +51,7 @@ int getCommandPrompt(char *buf, size_t size)
     }
     else if (strlen(cwd) >= _PATH_MAX)
     {
+        fprintf(stderr, "cwd length exceeds path size\n");
         return 1;
     }
     homeDir = getenv(_HOME_ENV);
@@ -76,8 +72,12 @@ int getCommandPrompt(char *buf, size_t size)
         /*  Raw     */
         strcat(pwd, cwd);
     }
-    if ((length += strlen(pwd)) >= size)
+    length += strlen(pwd);
+
+    /*  Check if prompt length exceeds buffer size  */
+    if (length >= size)
     {
+        fprintf(stderr, "prompt length exceeds buffer size\n");
         return 1;
     }
 

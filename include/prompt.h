@@ -3,7 +3,7 @@
 
 #include <pwd.h>    /*  getpwuid                */
 #include <stdlib.h> /*  getenv                  */
-#include <stdio.h>  /*  perror                  */
+#include <stdio.h>  /*  fprintf, perror         */
 #include <string.h> /*  strlen, strstr          */
 #include <unistd.h> /*  geteuid, gethostname    */ 
 
