@@ -1,3 +1,4 @@
+#include "../include/execute.h"
 #include "../include/parse.h"
 #include "../include/prompt.h"
 
@@ -41,7 +42,8 @@ int main()
         {
             continue;
         }
-        else if (strcmp(*argv, "exit") == 0)
+        /*  Execute command(s)  */
+        else if (executeInput(argc, argv, toks) == 1)
         {
             break;
         }

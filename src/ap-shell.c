@@ -94,7 +94,7 @@ int executecd(const char *path)
     /*  Path to destination directory.  */
     const char *destDir = NULL;
     /*  New working directory.  */
-    char *nwd = NULL;
+    char nwd[PATH_MAX];
 
     /*  Get current env value   */
     cwd = getenv(AP_ENV_PWD);
@@ -149,8 +149,7 @@ int executecd(const char *path)
     }
 
     /*  Get new working directory   */
-    nwd = getcwd(nwd, PATH_MAX);
-    if (!nwd)
+    if (!getcwd(nwd, PATH_MAX))
     {
         perror("getcwd");
         return EXIT_FAILURE;
@@ -159,18 +158,15 @@ int executecd(const char *path)
     else if (setenv(AP_ENV_PWD, nwd, 1) < 0)
     {
         perror("setenv");
-        free(nwd);
         return EXIT_FAILURE;
     }
-    /*  Free allocated memory from nwd  */
-    free(nwd);
 
     return EXIT_SUCCESS;
 }
 
 void executeCommand(char *const argv[], int *exitStatus)
 {
-    /*  Caller process ID.  */
+    /*  Forked process ID.  */
     pid_t pid = fork();
 
     if (pid < 0)
@@ -179,7 +175,7 @@ void executeCommand(char *const argv[], int *exitStatus)
     }
     else if (pid == 0)
     {
-        /*  Execute command as child process    */
+        /*  Execute in child process    */
         if (execvp(*argv, argv) < 0)
         {
             perror("execvp");
