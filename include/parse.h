@@ -1,15 +1,10 @@
 #ifndef __PARSE_H
 #define __PARSE_H
 
+#include "shell_consts.h"
+
 #include <stdio.h>  /*  NULL, fprintf   */
 #include <string.h> /*  strcmp, strsep  */
-
-#define _MAX_INPUT  1024
-#define _ARG_MAX    64
-
-#define _SEMICOLON  ";"
-#define _AND        "&&"
-#define _OR         "||"
 
 /*
 *   Parses a command string, generating arguments to be executed.

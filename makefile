@@ -27,13 +27,13 @@ $(TARGET): $(BIN) $(OBJ)
 $(BIN)/main.o: $(BIN)/prompt.o $(BIN)/parse.o $(BIN)/execute.o $(SRC)/main.c
 	$(CC) $(CFLAGS) -o $(BIN)/main.o -c $(SRC)/main.c
 
-$(BIN)/prompt.o: $(INCLUDE)/prompt.h $(SRC)/prompt.c
+$(BIN)/prompt.o: $(INCLUDE)/shell_consts.h $(INCLUDE)/prompt.h $(SRC)/prompt.c
 	$(CC) $(CFLAGS) -D_XOPEN_SOURCE=500 -o $(BIN)/prompt.o -c $(SRC)/prompt.c
 
-$(BIN)/execute.o: $(BIN)/parse.o $(INCLUDE)/execute.h $(SRC)/execute.c
-	$(CC) $(CFLAGS) -o $(BIN)/execute.o -c $(SRC)/execute.c
+$(BIN)/execute.o: $(BIN)/parse.o $(INCLUDE)/shell_consts.h $(INCLUDE)/execute.h $(SRC)/execute.c
+	$(CC) $(CFLAGS) -D_POSIX_C_SOURCE=200112L -o $(BIN)/execute.o -c $(SRC)/execute.c
 
-$(BIN)/parse.o: $(INCLUDE)/parse.h $(SRC)/parse.c
+$(BIN)/parse.o: $(INCLUDE)/shell_consts.h $(INCLUDE)/parse.h $(SRC)/parse.c
 	$(CC) $(CFLAGS) -D_DEFAULT_SOURCE -o $(BIN)/parse.o -c $(SRC)/parse.c
 
 $(BIN):

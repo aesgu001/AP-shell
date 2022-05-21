@@ -43,7 +43,7 @@ int getCommandPrompt(char *buf, size_t size)
     length += strlen(hostName) + 1;
 
     /*  Get cwd path    */
-    cwd = getenv(_PWD_ENV);
+    cwd = getenv(_ENV_PWD);
     if (!cwd)
     {
         perror("getenv");
@@ -54,7 +54,7 @@ int getCommandPrompt(char *buf, size_t size)
         fprintf(stderr, "cwd length exceeds path size\n");
         return 1;
     }
-    homeDir = getenv(_HOME_ENV);
+    homeDir = getenv(_ENV_HOME);
     if (!homeDir)
     {
         perror("getenv");

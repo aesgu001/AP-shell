@@ -57,19 +57,19 @@ int parseInput(char *input, int *argc, char *argv[], const char *toks[])
         tok = "";
         for (parTok = input; *parTok != '\0'; ++parTok)
         {
-            if (strstr(parTok, _SEMICOLON) == parTok)
+            if (strstr(parTok, _TOK_SC) == parTok)
             {
-                tok = _SEMICOLON;
+                tok = _TOK_SC;
                 break;
             }
-            else if (strstr(parTok, _AND) == parTok)
+            else if (strstr(parTok, _TOK_AND) == parTok)
             {
-                tok = _AND;
+                tok = _TOK_AND;
                 break;
             }
-            else if (strstr(parTok, _OR) == parTok)
+            else if (strstr(parTok, _TOK_OR) == parTok)
             {
-                tok = _OR;
+                tok = _TOK_OR;
                 break;
             }
         }
@@ -91,7 +91,7 @@ int parseInput(char *input, int *argc, char *argv[], const char *toks[])
             /*  Add connector string    */
             *toks++ = tok;
 
-            if (strcmp(tok, _AND) == 0 || strcmp(tok, _OR) == 0)
+            if (strcmp(tok, _TOK_AND) == 0 || strcmp(tok, _TOK_OR) == 0)
             {
                 /*  Remove trailing char from input   */
                 *input++ = '\0';
@@ -102,7 +102,7 @@ int parseInput(char *input, int *argc, char *argv[], const char *toks[])
         parArgv = argv + ++(*argc);
     }
     /*  Check if input ends with connectors AND or OR   */
-    if (strcmp(tok, _AND) == 0 || strcmp(tok, _OR) == 0)
+    if (strcmp(tok, _TOK_AND) == 0 || strcmp(tok, _TOK_OR) == 0)
     {
         fprintf(stderr, "syntax error near unexpected token `%s'\n", tok);
         return 1;

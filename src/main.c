@@ -10,7 +10,7 @@
 void displayCommandPrompt()
 {
     /*  Shell command prompt.   */
-    char commandPrompt[_PROMPT_MAX];
+    char commandPrompt[_INPUT_MAX];
 
     /*  Print command prompt  */
     if (getCommandPrompt(commandPrompt, _PROMPT_MAX) == 0)
@@ -24,7 +24,7 @@ void displayCommandPrompt()
 int main()
 {
     /*  Command line input.     */
-    char input[_MAX_INPUT];
+    char input[_INPUT_MAX];
     /*  Argument count.         */
     int argc = 0;
     /*  Command line argument.  */
@@ -36,7 +36,7 @@ int main()
     {
         displayCommandPrompt();
         /*  Read command line input     */
-        fgets(input, _MAX_INPUT, stdin);
+        fgets(input, _INPUT_MAX, stdin);
         /*  Parse command line input    */
         if (parseInput(input, &argc, argv, toks) == 1 || !(*argv))
         {
