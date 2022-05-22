@@ -23,13 +23,11 @@ void displayCommandPrompt()
 
 int main()
 {
-    /*  Command line input.     */
+    /*  Command line input.             */
     char input[_INPUT_MAX];
-    /*  Argument count.         */
-    int argc = 0;
-    /*  Command line argument.  */
-    char *argv[_ARG_MAX];
-    /*  Command connectors.     */
+    /*  Command list.                   */
+    command commands[_COMMAND_MAX];
+    /*  Connector tokens.               */
     const char *toks[_ARG_MAX];
 
     while (1)
@@ -38,12 +36,12 @@ int main()
         /*  Read command line input     */
         fgets(input, _INPUT_MAX, stdin);
         /*  Parse command line input    */
-        if (parseInput(input, &argc, argv, toks) == 1 || !(*argv))
+        if (parseInput(input, commands, toks) == 1)
         {
             continue;
         }
         /*  Execute command(s)  */
-        else if (executeInput(argc, argv, toks) == 1)
+        else if (executeInput(commands, toks) == 1)
         {
             break;
         }

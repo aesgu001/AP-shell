@@ -1,32 +1,31 @@
 #ifndef __PARSE_H
 #define __PARSE_H
 
+#include "command.h"
 #include "shell_consts.h"
 
 #include <stdio.h>  /*  NULL, fprintf   */
 #include <string.h> /*  strcmp, strsep  */
 
 /*
-*   Parses a command string, generating arguments to be executed.
+*   Parses a command string, generating the command line argument.
 *
 *   @param  cmd     command string.
-*   @param  argc    argument count.
 *   @param  argv    command line argument.
 *
-*   @return 0 on success. 1 if argc exceeds max number of arguments.
+*   @return None.
 */
-int parseCommand(char *, int *, char *[]);
+void parseCommand(char *, char *[]);
 
 /*
-*   Parses the command line input, extracting command strings and connectors.
+*   Parses the command line input, extracting commands and connector tokens.
 *
-*   @param  input   command line input.
-*   @param  argc    argument count.
-*   @param  argv    command line argument.
-*   @param  toks    command connectors.
+*   @param  input       command line input.
+*   @param  commands    command list.
+*   @param  toks        connector tokens.
 *
 *   @return 0 on success. 1 on failure.
 */
-int parseInput(char *, int *, char *[], const char *[]);
+int parseInput(char *, command *, const char *[]);
 
 #endif

@@ -1,6 +1,6 @@
 #include "../include/parse.h"
 
-int parseCommand(char *cmd, int *argc, char *argv[])
+void parseCommand(char *cmd, char *argv[])
 {
     while (*cmd != '\0')
     {
@@ -16,13 +16,6 @@ int parseCommand(char *cmd, int *argc, char *argv[])
             break;
         }
 
-        /*  Check if argc exceeds args  */
-        if (++(*argc) >= _ARG_MAX)
-        {
-            fprintf(stderr, "too many arguments\n");
-            *argv = NULL;
-            return 1;
-        }
         /*  Store argument position     */
         *argv++ = cmd++;
         while (*cmd != '\0' && *cmd != '\n' && *cmd != ' ')
@@ -33,81 +26,83 @@ int parseCommand(char *cmd, int *argc, char *argv[])
 
     /*  Set end of argument list to NULL    */
     *argv = NULL;
-
-    return 0;
 }
 
-int parseInput(char *input, int *argc, char *argv[], const char *toks[])
+int parseInput(char *input, command *commands, const char *toks[])
 {
-    /*  Command line argument parser.   */
-    char **parArgv = argv;
-    /*  Connector string.               */
-    const char *tok = "";
+    /*  Connector token.                */
+    const char *tok = _TOK_EMPTY;
+    /*  Previous connector token.       */
+    const char *prevTok = _TOK_EMPTY;
     /*  Connector parser.               */
-    char *parTok = NULL;
+    const char *tokP = NULL;
 
     /*  Remove input preceded by '#'    */
-    input = strsep(&input, "#");
-    /*  Set argument count to 0     */
-    *argc = 0;
-
-    while (input && strcmp(input, "") != 0)
+    input = strsep(&input, _TOK_COMMENT);
+    while (input && strcmp(input, _TOK_EMPTY) != 0)
     {
-        /*  Get nearest connector   */
-        tok = "";
-        for (parTok = input; *parTok != '\0'; ++parTok)
+        /*  Find nearest connector token.   */
+        tok = _TOK_EMPTY;
+        for (tokP = input; *tokP != '\0'; ++tokP)
         {
-            if (strstr(parTok, _TOK_SC) == parTok)
+            if (strstr(tokP, _TOK_SEMICOLON) == tokP)
             {
-                tok = _TOK_SC;
+                tok = _TOK_SEMICOLON;
                 break;
             }
-            else if (strstr(parTok, _TOK_AND) == parTok)
+            else if (strstr(tokP, _TOK_AND) == tokP)
             {
                 tok = _TOK_AND;
                 break;
             }
-            else if (strstr(parTok, _TOK_OR) == parTok)
+            else if (strstr(tokP, _TOK_OR) == tokP)
             {
                 tok = _TOK_OR;
                 break;
-            }
+            }   
         }
 
-        /*  Parse command string  */
-        if (parseCommand(strsep(&input, tok), argc, parArgv) == 1)
+        /*  Parse command string    */
+        parseCommand(strsep(&input, tok), commands->argv);
+        if (strcmp(tok, _TOK_EMPTY) != 0)
         {
-            return 1;
-        }
-        else if (strcmp(tok, "") != 0)
-        {
-            /*  Check if argv is NULL   */
-            if (!(*parArgv))
+            if (!(*commands->argv))
             {
-                fprintf(stderr, "syntax error near unexpected token `%s'\n", tok);
+                /*  Syntax error    */
+                fprintf(stderr, "no command found before token `%s'\n", tok);
                 return 1;
             }
 
-            /*  Add connector string    */
+            /*  Add connector token     */
             *toks++ = tok;
 
-            if (strcmp(tok, _TOK_AND) == 0 || strcmp(tok, _TOK_OR) == 0)
+            if (strlen(tok) > 1)
             {
-                /*  Remove trailing char from input   */
-                *input++ = '\0';
+                int i;
+                for (i = 0; i < strlen(tok) - 1; ++i)
+                {
+                    /*  Remove trailing token char from input   */
+                    *input++ = '\0';
+                }
             }
         }
 
-        /*  Update argc and argv    */
-        parArgv = argv + ++(*argc);
+        if (*commands->argv)
+        {
+            /*  Initialize command  */
+            commands++->status = -1;
+            prevTok = tok;
+        }
     }
-    /*  Check if input ends with connectors AND or OR   */
-    if (strcmp(tok, _TOK_AND) == 0 || strcmp(tok, _TOK_OR) == 0)
+    /*  Check if input ends with connector AND or OR   */
+    if (strcmp(prevTok, _TOK_AND) == 0 || strcmp(prevTok, _TOK_OR) == 0)
     {
-        fprintf(stderr, "syntax error near unexpected token `%s'\n", tok);
+        fprintf(stderr, "no command found after token `%s'\n", prevTok);
         return 1;
     }
 
+    /*  Set end of command list to NULL     */
+    *commands->argv = NULL;
     /*  Set end of connector list to NULL   */
     *toks = NULL;
 

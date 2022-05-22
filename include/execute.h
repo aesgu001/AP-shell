@@ -1,6 +1,7 @@
 #ifndef __EXECUTE_H
 #define __EXECUTE_H
 
+#include "command.h"
 #include "shell_consts.h"
 
 #include <stdio.h>      /*  fprintf, perror, printf, stderr, stdout             */
@@ -22,23 +23,20 @@ int executeChangeDirectory(const char *);
 *   Clones a child process to execute the command line argument, and retrieves that child process's
 *   exit status.
 *
-*   @param  argv        command line argument.
-*   @param  exitStatus  child process's exit status.
+*   @param  cmd         executing command.
 *
 *   @return None.
 */
-void executeCommand(char *const[], int *);
+void executeCommand(command *);
 
 /*
-*   Processes the command line input. Executes each command that meets connector and exit status
-*   conditions.
+*   Executes each command in the list that meets connector and exit status conditions.
 * 
-*   @param  argc    argument count.
-*   @param  argv    command line argument.
-*   @param  toks    command connectors.
+*   @param  commands    command list.
+*   @param  toks        connector tokens.
 *
 *   @return 0 on success. 1 if exit called.
 */
-int executeInput(int, char *[], const char *[]);
+int executeInput(command *, const char *[]);
 
 #endif
