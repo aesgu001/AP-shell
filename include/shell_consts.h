@@ -8,6 +8,9 @@
 #define _PATH_MAX       1024
 #define _PROMPT_MAX     1024
 
+#define _PIPE_READ      0
+#define _PIPE_WRITE     1
+
 #define _CMD_EXIT       "exit"
 #define _CMD_CD         "cd"
 
@@ -20,6 +23,7 @@
 #define _TOK_EMPTY      ""
 /*  #define _TOK_IN         "<"     */
 #define _TOK_OR         "||"
+#define _TOK_PIPE       "|"
 /*  #define _TOK_OUT        ">"     */
 /*  #define _TOK_OUTAPPEND  ">>"    */
 #define _TOK_SEMICOLON  ";"

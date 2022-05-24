@@ -25,8 +25,10 @@ int main()
 {
     /*  Command line input.             */
     char input[_INPUT_MAX];
+    /*  Command line argument.          */
+    char *argv[_ARG_MAX];
     /*  Command list.                   */
-    command commands[_COMMAND_MAX];
+    command cmds[_COMMAND_MAX];
     /*  Connector tokens.               */
     const char *toks[_ARG_MAX];
 
@@ -36,12 +38,12 @@ int main()
         /*  Read command line input     */
         fgets(input, _INPUT_MAX, stdin);
         /*  Parse command line input    */
-        if (parseInput(input, commands, toks) == 1)
+        if (parseInput(input, argv, cmds, toks) == 1)
         {
             continue;
         }
         /*  Execute command(s)  */
-        else if (executeInput(commands, toks) == 1)
+        else if (executeInput(cmds, toks) == 1)
         {
             break;
         }

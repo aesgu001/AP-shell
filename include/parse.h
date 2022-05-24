@@ -12,20 +12,22 @@
 *
 *   @param  cmd     command string.
 *   @param  argv    command line argument.
+*   @param  argvC   command argument list.
 *
 *   @return None.
 */
-void parseCommand(char *, char *[]);
+void parseCommand(char *, char *[], char *[]);
 
 /*
 *   Parses the command line input, extracting commands and connector tokens.
 *
 *   @param  input       command line input.
+*   @param  argv        command line argument.
 *   @param  commands    command list.
 *   @param  toks        connector tokens.
 *
 *   @return 0 on success. 1 on failure.
 */
-int parseInput(char *, command *, const char *[]);
+int parseInput(char *, char *[], command *, const char *[]);
 
 #endif

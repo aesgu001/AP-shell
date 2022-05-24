@@ -19,6 +19,14 @@
 */
 int executeChangeDirectory(const char *);
 
+/*  Creates a pipeline to connect all processes such that one process can write to/read from another.
+*
+*   @param  commands    commands to execute.
+*
+*   @return 0 on success. 1 if at least one command failed.
+*/
+int executePiped(command *);
+
 /*
 *   Clones a child process to execute the command line argument, and retrieves that child process's
 *   exit status.

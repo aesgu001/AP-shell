@@ -1,6 +1,6 @@
 #include "../include/parse.h"
 
-void parseCommand(char *cmd, char *argv[])
+void parseCommand(char *cmd, char *argv[], char *argvC[])
 {
     while (*cmd != '\0')
     {
@@ -17,7 +17,7 @@ void parseCommand(char *cmd, char *argv[])
         }
 
         /*  Store argument position     */
-        *argv++ = cmd++;
+        *argvC++ = *argv++ = cmd++;
         while (*cmd != '\0' && *cmd != '\n' && *cmd != ' ')
         {
             ++cmd;
@@ -25,10 +25,10 @@ void parseCommand(char *cmd, char *argv[])
     }
 
     /*  Set end of argument list to NULL    */
-    *argv = NULL;
+    *argvC = *argv = NULL;
 }
 
-int parseInput(char *input, command *commands, const char *toks[])
+int parseInput(char *input, char *argv[], command *commands, const char *toks[])
 {
     /*  Connector token.                */
     const char *tok = _TOK_EMPTY;
@@ -55,54 +55,75 @@ int parseInput(char *input, command *commands, const char *toks[])
                 tok = _TOK_AND;
                 break;
             }
-            else if (strstr(tokP, _TOK_OR) == tokP)
+            else if (strstr(tokP, _TOK_PIPE) == tokP)
             {
-                tok = _TOK_OR;
+                if (strstr(tokP, _TOK_OR) == tokP)
+                {
+                    tok = _TOK_OR;
+                }
+                else
+                {
+                    tok = _TOK_PIPE;
+                }
                 break;
             }   
         }
 
+        /*  Initialize command  */
+        commands->next = NULL;
+        commands->argv = argv;
+        commands->status = -1;
+
         /*  Parse command string    */
-        parseCommand(strsep(&input, tok), commands->argv);
+        parseCommand(strsep(&input, tok), argv, commands->argv);
         if (strcmp(tok, _TOK_EMPTY) != 0)
         {
-            if (!(*commands->argv))
+            if (!(*argv))
             {
                 /*  Syntax error    */
                 fprintf(stderr, "no command found before token `%s'\n", tok);
                 return 1;
             }
-
-            /*  Add connector token     */
-            *toks++ = tok;
-
-            if (strlen(tok) > 1)
+            else if (strcmp(tok, _TOK_PIPE) == 0)
             {
-                int i;
-                for (i = 0; i < strlen(tok) - 1; ++i)
+                /*  Add next command to current pipeline    */
+                commands->next = commands + 1;
+            }
+            else
+            {
+                /*  Add connector token     */
+                *toks++ = tok;
+
+                if (strlen(tok) > 1)
                 {
-                    /*  Remove trailing token char from input   */
-                    *input++ = '\0';
+                    int i;
+                    for (i = 0; i < strlen(tok) - 1; ++i)
+                    {
+                        /*  Remove trailing token char from input   */
+                        *input++ = '\0';
+                    }
                 }
             }
         }
 
-        if (*commands->argv)
+        if (*argv)
         {
-            /*  Initialize command  */
-            commands++->status = -1;
+            /*  Update commands, argv, and previous token   */
+            ++commands;
+            while (*argv++);
             prevTok = tok;
         }
     }
-    /*  Check if input ends with connector AND or OR   */
-    if (strcmp(prevTok, _TOK_AND) == 0 || strcmp(prevTok, _TOK_OR) == 0)
+    /*  Check if input ends with connector AND or OR or PIPE   */
+    if (strcmp(prevTok, _TOK_AND) == 0 || strcmp(prevTok, _TOK_OR) == 0 ||
+        strcmp(prevTok, _TOK_PIPE) == 0)
     {
         fprintf(stderr, "no command found after token `%s'\n", prevTok);
         return 1;
     }
 
     /*  Set end of command list to NULL     */
-    *commands->argv = NULL;
+    commands->argv = NULL;
     /*  Set end of connector list to NULL   */
     *toks = NULL;
 
