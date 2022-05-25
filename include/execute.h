@@ -4,11 +4,24 @@
 #include "command.h"
 #include "shell_consts.h"
 
+#include <fcntl.h>
 #include <stdio.h>      /*  fprintf, perror, printf, stderr, stdout             */
 #include <stdlib.h>     /*  EXIT_FAILURE, EXIT_SUCCESS, exit, getenv, setenv    */
 #include <string.h>     /*  strcmp                                              */
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/wait.h>   /*  waitpid                                             */
 #include <unistd.h>     /*  chdir, fork, getcwd                                 */
+
+/*  Opens files for reading/writing on standard input/output.
+*
+*   @param  in  in file descriptor.
+*   @param  out out file descriptor.
+*   @param  cmd command to be executed.
+*
+*   @return 0 on success. 1 on failure.
+*/
+int openCommandFiles(int *, int *, command *);
 
 /*
 *   Changes the current working directory to the directory specified in path.

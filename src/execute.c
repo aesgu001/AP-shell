@@ -1,5 +1,64 @@
 #include "../include/execute.h"
 
+int openCommandFiles(int *in, int *out, command *cmd)
+{
+    /*  Output write flags.             */
+    int oFlags = O_WRONLY | O_CREAT;
+    /*  File mode flags.                */
+    mode_t mFlags =  S_IRUSR | S_IWUSR;
+
+    /*  Open in file    */
+    if (cmd->in && cmd->inTok)
+    {
+        if ((*in = open(cmd->in, O_RDONLY)) < 0)
+        {
+            perror("open");
+            return 1;
+        }
+        else if (dup2(*in, STDIN_FILENO) < 0)
+        {
+            perror("dup2");
+            return 1;
+        }
+        else if (close(*in) < 0)
+        {
+            perror("close");
+            return 1;
+        }
+    }
+    /*  Open out file   */
+    if (cmd->out && cmd->outTok)
+    {
+        /*  Set appropriate output flags    */
+        if (strcmp(cmd->outTok, _TOK_OUTAPPEND) == 0)
+        {
+            oFlags |= O_APPEND;
+        }
+        else
+        {
+            oFlags |= O_TRUNC;
+        }
+
+        if ((*out = open(cmd->out, oFlags, mFlags)) < 0)
+        {
+            perror("open");
+            return 1;
+        }
+        else if (dup2(*out, STDOUT_FILENO) < 0)
+        {
+            perror("dup2");
+            return 1;
+        }
+        else if (close(*out) < 0)
+        {
+            perror("close");
+            return 1;
+        }       
+    }
+
+    return 0;
+}
+
 int executeChangeDirectory(const char *path)
 {
     /*  Path to previous working directory.     */
@@ -92,6 +151,8 @@ int executePiped(command *commands)
 {
     /*  I/O state backup.       */
     int stIn = 0, stOut = 0;
+    /*  I/O file descriptor.    */
+    int in, out;
     /*  Command pipeline.       */
     int *pipefd = NULL;
     /*  Number of commands.     */
@@ -205,8 +266,14 @@ int executePiped(command *commands)
                 }
             }
 
+            /*  Open command files  */
+            if (openCommandFiles(&in, &out, cmd) == 1)
+            {
+                free(pipefd);
+                exit(EXIT_FAILURE);
+            }
             /*  Execute command     */
-            if (execvp(*cmd->argv, cmd->argv) < 0)
+            else if (execvp(*cmd->argv, cmd->argv) < 0)
             {
                 perror("execvp");
                 free(pipefd);
@@ -274,10 +341,24 @@ int executePiped(command *commands)
 
 void executeCommand(command *cmd)
 {
+    /*  I/O state backup.       */
+    int stIn = 0, stOut = 0;
+    /*  I/O file descriptor.    */
+    int in, out;
     /*  Child process status.   */
     int status = 0;
     /*  Forked process ID.      */
     pid_t pid = fork();
+
+    /*  Back up I/O states  */
+    if ((stIn = dup(STDIN_FILENO)) < 0)
+    {
+        perror("dup");
+    }
+    else if ((stOut = dup(STDOUT_FILENO)) < 0)
+    {
+        perror("dup");
+    }
 
     if (pid < 0)
     {
@@ -285,8 +366,13 @@ void executeCommand(command *cmd)
     }
     else if (pid == 0)
     {
+        /*  Open command files  */
+        if (openCommandFiles(&in, &out, cmd) == 1)
+        {
+            exit(EXIT_FAILURE);
+        }
         /*  Execute command line argument   */
-        if (execvp(*cmd->argv, cmd->argv) < 0)
+        else if (execvp(*cmd->argv, cmd->argv) < 0)
         {
             perror("execvp");
             exit(EXIT_FAILURE);
@@ -304,6 +390,16 @@ void executeCommand(command *cmd)
         {
             cmd->status = WEXITSTATUS(status);
         }
+    }
+
+    /*  Restore I/O states  */
+    if (dup2(stIn, STDIN_FILENO) < 0)
+    {
+        perror("dup2");
+    }
+    else if (dup2(stOut, STDOUT_FILENO) < 0)
+    {
+        perror("dup2");
     }
 }
 

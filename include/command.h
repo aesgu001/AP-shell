@@ -8,9 +8,8 @@ typedef struct command
 {
     struct command *next;           /*  Next command in pipeline.   */
     char **argv;                    /*  Argument list.              */
-    /*  int in, out;                      I/O channel.                */
-    /*  const char *inTok, *outTok;       I/O redirector.             */
-    /*  const char *inFD, *outFD;         File descriptor.            */
+    const char *inTok, *outTok;     /*  I/O redirector.             */
+    char *in, *out;                 /*  File descriptor.            */
     int status;                     /*  Exit status.                */
 } command;
 

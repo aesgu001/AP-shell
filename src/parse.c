@@ -1,31 +1,102 @@
 #include "../include/parse.h"
 
-void parseCommand(char *cmd, char *argv[], char *argvC[])
+int parseCommand(char *cmdStr, char *argv[], command *cmd)
 {
-    while (*cmd != '\0')
+    /*  Redirector token.           */
+    const char *ioTok = _TOK_EMPTY;
+    /*  Command argument parser.    */
+    char **argvC = cmd->argv;
+
+    while (*cmdStr != '\0')
     {
-        /*  Replace newlines and whitespaces '\0'   */
-        while (*cmd == ' ' || *cmd == '\n')
+        /*  Replace newlines and whitespaces with '\0'  */
+        while (*cmdStr == ' ' || *cmdStr == '\n')
         {
-            *cmd++ = '\0';
+            *cmdStr++ = '\0';
         }
 
-        if (*cmd == '\0')
+        if (*cmdStr == '\0')
         {
             /*  Exit loop   */
             break;
         }
 
-        /*  Store argument position     */
-        *argvC++ = *argv++ = cmd++;
-        while (*cmd != '\0' && *cmd != '\n' && *cmd != ' ')
+        /*  Get redirection token   */
+        if (strstr(cmdStr, _TOK_IN) == cmdStr)
         {
-            ++cmd;
+            ioTok = _TOK_IN;
+            *cmdStr++ = '\0';
+        }
+        else if (strstr(cmdStr, _TOK_OUT) == cmdStr)
+        {
+            if (strstr(cmdStr, _TOK_OUTAPPEND) == cmdStr)
+            {
+                ioTok = _TOK_OUTAPPEND;
+                *cmdStr++ = '\0';
+                *cmdStr++ = '\0';
+            }
+            else
+            {
+                ioTok = _TOK_OUT;
+                *cmdStr++ = '\0';
+            }
+        }
+        else
+        {
+            ioTok = _TOK_EMPTY;
+        }
+
+        if (strcmp(ioTok, _TOK_EMPTY) == 0)
+        {
+            /*  Store argument position     */
+            *argvC++ = *argv++ = cmdStr++;
+            while (*cmdStr != '\0' && *cmdStr != '\n' && *cmdStr != ' ' && *cmdStr != '>' &&
+                *cmdStr != '<')
+            {
+                ++cmdStr;
+            }
+        }
+        else
+        {
+            /*  Replace more newlines and whitespaces   */
+            while (*cmdStr == ' ' || *cmdStr == '\n')
+            {
+                *cmdStr++ = '\0';
+            }
+
+            /*  Syntax error    */
+            if (*cmdStr == '\0')
+            {
+                fprintf(stderr, "no file found after token `%s'\n", ioTok);
+                return 1;
+            }
+            /*  Store redirection token and file name     */
+            else if (isalnum(*cmdStr))
+            {
+                if (strcmp(ioTok, _TOK_IN) == 0)
+                {
+                    cmd->in = cmdStr++;
+                    cmd->inTok = ioTok;
+                }
+                else
+                {
+                    cmd->out = cmdStr++;
+                    cmd->outTok = ioTok;
+                }
+
+                while (*cmdStr != '\0' && *cmdStr != '\n' && *cmdStr != ' ' && *cmdStr != '>' &&
+                    *cmdStr != '<')
+                {
+                    ++cmdStr;
+                }
+            }
         }
     }
 
     /*  Set end of argument list to NULL    */
     *argvC = *argv = NULL;
+
+    return 0;
 }
 
 int parseInput(char *input, char *argv[], command *commands, const char *toks[])
@@ -72,11 +143,16 @@ int parseInput(char *input, char *argv[], command *commands, const char *toks[])
         /*  Initialize command  */
         commands->next = NULL;
         commands->argv = argv;
+        commands->inTok = commands->outTok = NULL;
+        commands->in = commands->out = NULL;
         commands->status = -1;
 
         /*  Parse command string    */
-        parseCommand(strsep(&input, tok), argv, commands->argv);
-        if (strcmp(tok, _TOK_EMPTY) != 0)
+        if (parseCommand(strsep(&input, tok), argv, commands) == 1)
+        {
+            return 1;
+        }
+        else if (strcmp(tok, _TOK_EMPTY) != 0)
         {
             if (!(*argv))
             {

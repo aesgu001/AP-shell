@@ -4,19 +4,20 @@
 #include "command.h"
 #include "shell_consts.h"
 
+#include <ctype.h>  /*  isalnum         */
 #include <stdio.h>  /*  NULL, fprintf   */
 #include <string.h> /*  strcmp, strsep  */
 
 /*
 *   Parses a command string, generating the command line argument.
 *
-*   @param  cmd     command string.
+*   @param  cmdStr  command string.
 *   @param  argv    command line argument.
-*   @param  argvC   command argument list.
+*   @param  cmd     command object.
 *
-*   @return None.
+*   @return 0 on success. 1 on failure.
 */
-void parseCommand(char *, char *[], char *[]);
+int parseCommand(char *, char *[], command *);
 
 /*
 *   Parses the command line input, extracting commands and connector tokens.

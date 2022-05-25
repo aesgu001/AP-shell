@@ -21,11 +21,11 @@
 #define _TOK_AND        "&&"
 #define _TOK_COMMENT    "#"
 #define _TOK_EMPTY      ""
-/*  #define _TOK_IN         "<"     */
+#define _TOK_IN         "<"
 #define _TOK_OR         "||"
 #define _TOK_PIPE       "|"
-/*  #define _TOK_OUT        ">"     */
-/*  #define _TOK_OUTAPPEND  ">>"    */
+#define _TOK_OUT        ">" 
+#define _TOK_OUTAPPEND  ">>"
 #define _TOK_SEMICOLON  ";"
 
 #endif
