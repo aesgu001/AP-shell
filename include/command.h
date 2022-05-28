@@ -10,7 +10,7 @@ typedef struct command
     char **argv;                    /*  Argument list.              */
     const char *inTok, *outTok;     /*  I/O redirector.             */
     char *in, *out;                 /*  File descriptor.            */
-    int status;                     /*  Exit status.                */
+    int status;                     /*  Command status.             */
 } command;
 
 #endif

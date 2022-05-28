@@ -182,6 +182,16 @@ int executePiped(command *cmdLink)
     int status;
 
 
+    /*  Update command link status  */
+    nCommands = 0;
+    for(cmd = cmdLink; cmd; cmd = cmd->next)
+    {
+        cmd->status = 0;
+        ++nCommands;
+    }
+    cmd = cmdLink;
+    nPipes = nCommands - 1;
+
     /*  Back up I/O states  */
     if ((stIn = dup(STDIN_FILENO)) < 0)
     {
@@ -219,13 +229,6 @@ int executePiped(command *cmdLink)
     }
 
     /*  Create unidirectional pipe  */
-    nCommands = 0;
-    for(cmd = cmdLink; cmd; cmd = cmd->next)
-    {
-        ++nCommands;
-    }
-    cmd = cmdLink;
-    nPipes = nCommands - 1;
     if (nPipes > _PIPE_MAX)
     {
         fprintf(stderr, "Too many commands\n");
@@ -241,7 +244,7 @@ int executePiped(command *cmdLink)
     }
 
     /*  Fork process    */
-    for (j = 0; cmd && j < nCommands; ++j)
+    for (j = 0, status = 0; cmd && j < nCommands; ++j)
     {
         if ((pid = fork()) < 0)
         {
@@ -415,6 +418,9 @@ int executeCommand(command *cmd)
     /*  Execute status.         */
     int status;
 
+
+    /*  Update command status   */
+    cmd->status = 0;
 
     /*  Back up I/O states  */
     if ((stIn = dup(STDIN_FILENO)) < 0)
