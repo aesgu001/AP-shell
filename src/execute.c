@@ -147,30 +147,39 @@ int executeChangeDirectory(const char *path)
     return 0;
 }
 
-int executePiped(command *commands)
+int executePiped(command *cmdLink)
 {
     /*  I/O state backup.       */
-    int stIn = 0, stOut = 0;
+    int stIn, stOut;
     /*  I/O file descriptor.    */
     int in, out;
+
+    /*  Signal mask backup.                 */
+    sigset_t stBlock;
+    /*  Interrupt signal action backup.     */
+    struct sigaction stSigInt;
+    /*  Interrupt signal action override.   */
+    struct sigaction saSigInt;
+
     /*  Command pipeline.       */
-    int *pipefd = NULL;
+    int pipefd[_PIPE_MAX];
     /*  Number of commands.     */
-    int nCommands = 0;
+    int nCommands;
     /*  Number of pipes.        */
-    int nPipes = 0;
+    int nPipes;
+    /*  Pipe iterator.          */
+    int i;
+    /*  Command iterator.       */
+    int j;
     /*  Current command.        */
     command *cmd;
-    /*  Forked process id.      */
-    pid_t pid;
-    /*  Child process status.   */
-    int status = 0;
-    /*  Return status.          */
-    int exitStatus = 0;
 
-    int i;  /*  Pipe open iterator.     */
-    int j;  /*  Command iterator.       */
-    int k;  /*  Pipe close iterator.    */
+    /*  Forked process ID.      */
+    pid_t pid;
+    /*  Wait status.            */
+    int wStatus;
+    /*  Execute status.         */
+    int status;
 
 
     /*  Back up I/O states  */
@@ -185,222 +194,340 @@ int executePiped(command *commands)
         return 1;
     }
 
-    /*  Get number of commands and pipes    */
-    for(cmd = commands; cmd; cmd = cmd->next)
+    /*  Set up and backup interrupt signal action   */
+    if (sigemptyset(&saSigInt.sa_mask) < 0)
+    {
+        perror("sigemptyset");
+        return 1;
+    }
+    saSigInt.sa_flags = SA_RESTART;
+    saSigInt.sa_handler = SIG_IGN;
+    if (sigaction(SIGINT, &saSigInt, &stSigInt) < 0)
+    {
+        perror("sigaction");
+        return 1;
+    }
+    else if (sigaddset(&saSigInt.sa_mask, SIGCHLD))
+    {
+        perror("sigaddset");
+        return 1;
+    }
+    else if (sigprocmask(SIG_BLOCK, &saSigInt.sa_mask, &stBlock))
+    {
+        perror("sigprocmask");
+        return 1;
+    }
+
+    /*  Create unidirectional pipe  */
+    nCommands = 0;
+    for(cmd = cmdLink; cmd; cmd = cmd->next)
     {
         ++nCommands;
     }
+    cmd = cmdLink;
     nPipes = nCommands - 1;
-    cmd = commands;
-
-    /*  Allocate memory for pipeline   */
-    pipefd = (int*)malloc(nPipes * 2 * sizeof(int));
+    if (nPipes > _PIPE_MAX)
+    {
+        fprintf(stderr, "Too many commands\n");
+        return 1;
+    }
     for (i = 0; i < nPipes; ++i)
     {
         if (pipe(pipefd + i * 2) < 0)
         {
             perror("pipe");
-            free(pipefd);
             return 1;
         }
     }
 
-    for (j = 0; j < nCommands; ++j)
+    /*  Fork process    */
+    for (j = 0; cmd && j < nCommands; ++j)
     {
-        pid = fork();
-        if (pid < 0)
+        if ((pid = fork()) < 0)
         {
             perror("fork");
-            free(pipefd);
             return 1;
         }
         /*  Child process   */
         else if (pid == 0)
         {
-            /*  1st pipe  */
-            if (j == 0)
+            /*  Restore interrupt signal action     */
+            if (sigaction(SIGINT, &stSigInt, NULL) < 0)
             {
-                if (dup2(pipefd[_PIPE_WRITE], STDOUT_FILENO) < 0)
+                perror("sigaction");
+                exit(EXIT_FAILURE);
+            }
+            else if (sigprocmask(SIG_SETMASK, &stBlock, NULL) < 0)
+            {
+                perror("sigprocmask");
+                exit(EXIT_FAILURE);
+            }
+
+            /*  1st to n-1th pipes  */
+            if (j <= 0 || j + 1 < nCommands)
+            {
+                if (dup2((pipefd + j * 2)[_PIPE_WRITE], STDOUT_FILENO) < 0)
                 {
                     perror("dup2");
-                    free(pipefd);
                     exit(EXIT_FAILURE);
                 }
             }
-            else
+            /*  2nd to nth pipes    */
+            if (j > 0)
             {
-                /*  2nd to nth pipes    */
                 if (dup2((pipefd + (j - 1) * 2)[_PIPE_READ], STDIN_FILENO) < 0)
                 {
                     perror("dup2");
-                    free(pipefd);
                     exit(EXIT_FAILURE);
-                }
-                /*  2nd to n-1th pipes  */
-                else if (j + 1 < nCommands)
-                {
-                    if (dup2((pipefd + j * 2)[_PIPE_WRITE], STDOUT_FILENO) < 0)
-                    {
-                        perror("dup2");
-                        free(pipefd);
-                        exit(EXIT_FAILURE);
-                    }
                 }
             }
 
             /*  Close remaining pipes  */
-            k = (j < 2)? 0 : j - 1;
-            for (; k < nPipes; ++k)
+            i = (j < 2)? 0 : j - 1;
+            for (; i < nPipes; ++i)
             {
-                if (close((pipefd + k * 2)[_PIPE_READ]) < 0)
+                if (close((pipefd + i * 2)[_PIPE_READ]) < 0)
                 {
                     perror("close");
-                    free(pipefd);
                     exit(EXIT_FAILURE);
                 }
-                else if (close((pipefd + k * 2)[_PIPE_WRITE]) < 0)
+                else if (close((pipefd + i * 2)[_PIPE_WRITE]) < 0)
                 {
                     perror("close");
-                    free(pipefd);
                     exit(EXIT_FAILURE);
                 }
             }
 
-            /*  Open command files  */
+            /*  Open I/O files  */
             if (openCommandFiles(&in, &out, cmd) == 1)
             {
-                free(pipefd);
                 exit(EXIT_FAILURE);
             }
+
             /*  Execute command     */
             else if (execvp(*cmd->argv, cmd->argv) < 0)
             {
                 perror("execvp");
-                free(pipefd);
                 exit(EXIT_FAILURE);
             }
         }
 
-        /*  Parent process  */
+        /*  Parent process  */       
         if (j > 0)
         {
             /*  Close pipes no longer needed    */
             if (close((pipefd + (j - 1) * 2)[_PIPE_READ]) < 0)
             {
                 perror("close");
-                free(pipefd);
                 return 1;
             }
             else if (close((pipefd + (j - 1) * 2)[_PIPE_WRITE]) < 0)
             {
                 perror("close");
-                free(pipefd);
                 return 1;
             }
         }
 
-        if (waitpid(-1, &status, 0) < 0)
+        /*  Wait for child process to finish    */
+        if (waitpid(pid, &wStatus, 0) < 0)
         {
             perror("waitpid");
-            free(pipefd);
             return 1;
         }
-        /*  Extract exit status     */
-        else if (WIFEXITED(status))
+        else if (WIFEXITED(wStatus))
         {
-            cmd->status = WEXITSTATUS(status);
-            if (exitStatus == 0)
+            if (status == 0)
             {
-                exitStatus = cmd->status;
+                status = WEXITSTATUS(wStatus);
             }
         }
+        else if (WIFSIGNALED(wStatus))
+        {
+            status = _EXIT_SIG + WTERMSIG(wStatus);
+            putchar('\n');
 
-        /*  Get next command    */
+            /*  Close remaining pipes   */
+            for (i = j; i < nPipes; ++i)
+            {
+                if (close((pipefd + i * 2)[_PIPE_READ]) < 0)
+                {
+                    perror("close");
+                    return 1;
+                }
+                else if (close((pipefd + i * 2)[_PIPE_WRITE]) < 0)
+                {
+                    perror("close");
+                    return 1;
+                }
+            }
+
+            break;
+        }
         cmd = cmd->next;
+    }
+
+    /*  Restore interrupt signal action     */
+    if (sigaction(SIGINT, &stSigInt, NULL) < 0)
+    {
+        perror("sigaction");
+        return 1;
+    }
+    else if (sigprocmask(SIG_SETMASK, &stBlock, NULL) < 0)
+    {
+        perror("sigprocmask");
+        return 1;
     }
 
     /*  Restore I/O states  */
     if (dup2(stIn, STDIN_FILENO) < 0)
     {
         perror("dup2");
-        free(pipefd);
         return 1;
     }
     else if (dup2(stOut, STDOUT_FILENO) < 0)
     {
         perror("dup2");
-        free(pipefd);
         return 1;
     }
 
-    /*  Free memory from pipeline   */
-    free(pipefd);
 
-    return exitStatus;
+    return status;
 }
 
-void executeCommand(command *cmd)
+int executeCommand(command *cmd)
 {
     /*  I/O state backup.       */
-    int stIn = 0, stOut = 0;
+    int stIn, stOut;
     /*  I/O file descriptor.    */
     int in, out;
-    /*  Child process status.   */
-    int status = 0;
+
+    /*  Signal mask backup.                 */
+    sigset_t stBlock;
+    /*  Interrupt signal action backup.     */
+    struct sigaction stSigInt;
+    /*  Interrupt signal action override.   */
+    struct sigaction saSigInt;
+
     /*  Forked process ID.      */
-    pid_t pid = fork();
+    pid_t pid;
+    /*  Wait status.            */
+    int wStatus;
+    /*  Execute status.         */
+    int status;
+
 
     /*  Back up I/O states  */
     if ((stIn = dup(STDIN_FILENO)) < 0)
     {
         perror("dup");
+        return 1;
     }
     else if ((stOut = dup(STDOUT_FILENO)) < 0)
     {
         perror("dup");
+        return 1;
     }
 
-    if (pid < 0)
+    /*  Set up and backup interrupt signal action   */
+    if (sigemptyset(&saSigInt.sa_mask) < 0)
+    {
+        perror("sigemptyset");
+        return 1;
+    }
+    saSigInt.sa_flags = SA_RESTART;
+    saSigInt.sa_handler = SIG_IGN;
+    if (sigaction(SIGINT, &saSigInt, &stSigInt) < 0)
+    {
+        perror("sigaction");
+        return 1;
+    }
+    else if (sigaddset(&saSigInt.sa_mask, SIGCHLD))
+    {
+        perror("sigaddset");
+        return 1;
+    }
+    else if (sigprocmask(SIG_BLOCK, &saSigInt.sa_mask, &stBlock))
+    {
+        perror("sigprocmask");
+        return 1;
+    }
+
+    /*  Fork process    */
+    if ((pid = fork()) < 0)
     {
         perror("fork");
+        return 1;
     }
     else if (pid == 0)
     {
-        /*  Open command files  */
-        if (openCommandFiles(&in, &out, cmd) == 1)
+        /*  Restore interrupt signal action     */
+        if (sigaction(SIGINT, &stSigInt, NULL) < 0)
+        {
+            perror("sigaction");
+            exit(EXIT_FAILURE);
+        }
+        else if (sigprocmask(SIG_SETMASK, &stBlock, NULL) < 0)
+        {
+            perror("sigprocmask");
+            exit(EXIT_FAILURE);
+        }
+
+        /*  Open I/O files      */
+        else if (openCommandFiles(&in, &out, cmd) == 1)
         {
             exit(EXIT_FAILURE);
         }
-        /*  Execute command line argument   */
+
+        /*  Execute command     */
         else if (execvp(*cmd->argv, cmd->argv) < 0)
         {
             perror("execvp");
             exit(EXIT_FAILURE);
         }
     }
-    else
+
+    /*  Wait for child process to finish    */
+    if (waitpid(pid, &wStatus, 0) < 0)
     {
-        /*  Wait for child process to finish    */
-        if (waitpid(-1, &status, 0) < 0)
-        {
-            perror("waitpid");
-        }
-        /*  Extract exit status     */
-        else if (WIFEXITED(status))
-        {
-            cmd->status = WEXITSTATUS(status);
-        }
+        perror("waitpid");
+        return 1;
+    }
+    else if (WIFEXITED(wStatus))
+    {
+        status = WEXITSTATUS(wStatus);
+    }
+    else if (WIFSIGNALED(wStatus))
+    {
+        status = _EXIT_SIG + WTERMSIG(wStatus);
+        putchar('\n');
+    }
+
+    /*  Restore interrupt signal action     */
+    if (sigaction(SIGINT, &stSigInt, NULL) < 0)
+    {
+        perror("sigaction");
+        return 1;
+    }
+    else if (sigprocmask(SIG_SETMASK, &stBlock, NULL) < 0)
+    {
+        perror("sigprocmask");
+        return 1;
     }
 
     /*  Restore I/O states  */
     if (dup2(stIn, STDIN_FILENO) < 0)
     {
         perror("dup2");
+        return 1;
     }
     else if (dup2(stOut, STDOUT_FILENO) < 0)
     {
         perror("dup2");
+        return 1;
     }
+
+    
+    return status;
 }
 
 int executeInput(command *commands, const char *toks[])
@@ -412,7 +539,7 @@ int executeInput(command *commands, const char *toks[])
     /*  Command iterator            */
     command *cmd;
 
-    for (cmd = commands; cmd->argv; ++cmd)
+    for (cmd = commands; exitStatus <= 127 && cmd->argv; ++cmd)
     {
         if (cmd->status < 0)
         {
@@ -438,8 +565,7 @@ int executeInput(command *commands, const char *toks[])
                 }
                 else
                 {
-                    executeCommand(cmd);
-                    exitStatus = cmd->status;
+                    exitStatus = executeCommand(cmd);
                 }
             }
             /*  Get next connector token    */

@@ -172,7 +172,7 @@ int parseInput(char *input, char *argv[], command *commands, const char *toks[])
 
                 if (strlen(tok) > 1)
                 {
-                    int i;
+                    size_t i;
                     for (i = 0; i < strlen(tok) - 1; ++i)
                     {
                         /*  Remove trailing token char from input   */

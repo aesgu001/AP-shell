@@ -6,10 +6,13 @@
 #define _HOST_NAME_MAX  64
 #define _INPUT_MAX      1024
 #define _PATH_MAX       1024
+#define _PIPE_MAX       32
 #define _PROMPT_MAX     1024
 
 #define _PIPE_READ      0
 #define _PIPE_WRITE     1
+
+#define _EXIT_SIG       127
 
 #define _CMD_EXIT       "exit"
 #define _CMD_CD         "cd"

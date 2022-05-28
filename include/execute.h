@@ -1,17 +1,20 @@
 #ifndef __EXECUTE_H
 #define __EXECUTE_H
 
+#define _DEFAULT_SOURCE
+
 #include "command.h"
 #include "shell_consts.h"
 
 #include <fcntl.h>
-#include <stdio.h>      /*  fprintf, perror, printf, stderr, stdout             */
-#include <stdlib.h>     /*  EXIT_FAILURE, EXIT_SUCCESS, exit, getenv, setenv    */
-#include <string.h>     /*  strcmp                                              */
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/wait.h>   /*  waitpid                                             */
-#include <unistd.h>     /*  chdir, fork, getcwd                                 */
+#include <sys/wait.h>
+#include <unistd.h>
 
 /*  Opens files for reading/writing on standard input/output.
 *
@@ -32,23 +35,24 @@ int openCommandFiles(int *, int *, command *);
 */
 int executeChangeDirectory(const char *);
 
-/*  Creates a pipeline to connect all processes such that one process can write to/read from another.
+/*  Creates a pipeline to connect linked processes such that one process can write to/read from
+*   another.
 *
-*   @param  commands    commands to execute.
+*   @param  cmdLink command link.
 *
-*   @return 0 on success. 1 if at least one command failed.
+*   @return 0 on success. 1 if at least one command failed. 128+ on interruption via signal.
 */
 int executePiped(command *);
 
 /*
-*   Clones a child process to execute the command line argument, and retrieves that child process's
-*   exit status.
+*   Clones a child process to execute the command object, and retrieves that child process's exit
+*   status.
 *
-*   @param  cmd         executing command.
+*   @param  cmd command object.
 *
-*   @return None.
+*   @return 0 on success. 1 on failure. 128+ on interruption via signal.
 */
-void executeCommand(command *);
+int executeCommand(command *);
 
 /*
 *   Executes each command in the list that meets connector and exit status conditions.

@@ -2,7 +2,7 @@
 CC = gcc
 
 # Compiler flags
-CFLAGS = -g -Wall -Werror -ansi -pedantic
+CFLAGS = -g -Wall -Werror -Wextra -ansi -pedantic
 
 # Include folder
 INCLUDE = include
@@ -24,9 +24,9 @@ DEXECUTE	= $(INCLUDE)/command.h $(INCLUDE)/shell_consts.h $(INCLUDE)/execute.h $
 
 # Object commands
 CMAIN		= -c $(SRC)/main.c
-CPROMPT		= -D_XOPEN_SOURCE=500 -c $(SRC)/prompt.c
+CPROMPT		= -D_DEFAULT_SOURCE -c $(SRC)/prompt.c
 CPARSE		= -D_DEFAULT_SOURCE -c $(SRC)/parse.c
-CEXECUTE	= -D_POSIX_C_SOURCE=200112L -c $(SRC)/execute.c
+CEXECUTE	= -c $(SRC)/execute.c
 
 # Target executable
 TARGET = $(BIN)/AP-shell
