@@ -15,7 +15,7 @@ current working directory to one specified by the user. Option `-` refers to a p
 Users can return control back to the shell by pressing `CTRL+C`. This stops any foreground process as well as other queued commands from executing before returning to 
 the command prompt.
 ## Demo
-Click the link here to view a demo of the project.
+Click the link [here](https://github.com/aesgu001/AP-shell/blob/main/docs/Demo.md) to view a demo of the project.
 ## Build and Usage
 **Note:** The GNU C compiler package must be installed to build the application.
 
